@@ -515,17 +515,21 @@ function renderChart7(data) {
     z.push(row); text.push(trow);
   });
 
+  const mob = isMobile();
   Plotly.newPlot('chart7', [{
     type: 'heatmap',
-    z, x: months, y: years.map(String), text, texttemplate: '%{text}',
+    z, x: months, y: years.map(String), text,
+    texttemplate: mob ? '' : '%{text}',
     colorscale: [[0,'#F5F0EB'],[0.25,'#C8DDE8'],[0.5,'#7EB8DA'],[0.75,'#5A99BE'],[1,'#2C3E50']],
     hovertemplate: '%{y} %{x}<br>Revenue: $%{z:,.0f}<extra></extra>',
+    showscale: !mob,
     colorbar: { title:'Revenue', tickformat:'$,.0s', len:0.6 },
     textfont: { size: 9 },
-  }], baseLayout(isMobile() ? 'Monthly Revenue Heatmap' : 'Monthly Revenue Heatmap — Seasonal & Growth Patterns', {
-    height: 380,
-    xaxis: { side:'top', tickfont:{size:11, color:'#777'} },
-    yaxis: { autorange:'reversed', tickfont:{size:11, color:'#777'} },
+  }], baseLayout(mob ? 'Monthly Revenue Heatmap' : 'Monthly Revenue Heatmap — Seasonal & Growth Patterns', {
+    height: mob ? 320 : 380,
+    margin: mob ? { l:40, r:10, t:50, b:30 } : undefined,
+    xaxis: { side: mob ? 'bottom' : 'top', tickfont:{size: mob ? 9 : 11, color:'#777'} },
+    yaxis: { autorange:'reversed', tickfont:{size: mob ? 9 : 11, color:'#777'} },
   }), PLOTLY_CFG);
 }
 
