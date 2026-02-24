@@ -145,6 +145,7 @@ const C = {
 };
 
 const FONT = "'DM Sans', 'Segoe UI', sans-serif";
+function isMobile() { return window.innerWidth <= 640; }
 const PLOTLY_CFG = { displayModeBar: true, displaylogo: false,
   modeBarButtonsToRemove: ['lasso2d','select2d'], responsive: true,
   scrollZoom: false };
@@ -321,13 +322,15 @@ function renderChart3(data) {
       }));
     const maxQty = Math.max(...entries.map(e => e.qty));
 
+    const mob = isMobile();
     traces.push({
       x: entries.map(e => e.rev),
       y: entries.map(e => e.gp / e.rev * 100),
       text: entries.map(e => e.sub),
-      mode: 'markers+text', textposition: 'top center', textfont: { size: 10 },
+      mode: mob ? 'markers' : 'markers+text',
+      textposition: 'top center', textfont: { size: mob ? 7 : 10 },
       marker: {
-        size: entries.map(e => e.qty / maxQty * 50 + 14),
+        size: entries.map(e => e.qty / maxQty * (mob ? 28 : 50) + (mob ? 8 : 14)),
         color: C.series[ci], opacity: 0.7,
         line: { width: 1.5, color: '#fff' },
       },
@@ -370,25 +373,31 @@ function renderChart4(data) {
     margins.push(gp/rev*100); custs.push(countDistinct(items, d => d.customerKey));
   });
 
+  const mob = isMobile();
   Plotly.newPlot('chart4', [{
     type: 'treemap', branchvalues: 'total',
     labels, parents, values,
     customdata: margins.map((m,i) => [m, custs[i]]),
-    texttemplate: '<b>%{label}</b><br>$%{value:,.0f}<br>Margin: %{customdata[0]:.1f}%',
+    texttemplate: mob
+      ? '<b>%{label}</b><br>$%{value:,.0f}'
+      : '<b>%{label}</b><br>$%{value:,.0f}<br>Margin: %{customdata[0]:.1f}%',
     hovertemplate: '<b>%{label}</b><br>Revenue: $%{value:,.0f}<br>Margin: %{customdata[0]:.1f}%<br>Customers: %{customdata[1]}<extra></extra>',
     marker: {
       colors: margins,
       colorscale: [[0,'#E8927C'],[0.5,'#F2C878'],[1,'#82C9B5']],
       colorbar: { title:'GP Margin %', ticksuffix:'%', orientation:'h',
-        len:0.5, thickness:14, y:1.02, yanchor:'bottom', x:0.5, xanchor:'center',
-        titleside:'top', titlefont:{size:11} },
-      line: { width: 2, color: '#fff' },
+        len: mob ? 0.7 : 0.5, thickness: mob ? 10 : 14,
+        y:1.02, yanchor:'bottom', x:0.5, xanchor:'center',
+        titleside:'top', titlefont:{size: mob ? 9 : 11} },
+      line: { width: mob ? 1 : 2, color: '#fff' },
     },
-    textfont: { size: 12, family: FONT },
-    pathbar: { visible: true, side: 'top', edgeshape: '>', textfont: { size: 13, family: FONT } },
-    tiling: { pad: 3 },
-  }], baseLayout('Revenue by Geography — Size: Revenue, Color: Profit Margin', {
-    height: 520, margin: { l:10, r:10, t:100, b:10 },
+    textfont: { size: mob ? 10 : 12, family: FONT },
+    pathbar: { visible: true, side: 'top', edgeshape: '>',
+      textfont: { size: mob ? 10 : 13, family: FONT } },
+    tiling: { pad: mob ? 2 : 3 },
+  }], baseLayout('Revenue by Geography', {
+    height: mob ? 420 : 520,
+    margin: { l:6, r:6, t: mob ? 80 : 100, b:6 },
   }), PLOTLY_CFG);
 }
 
@@ -546,13 +555,21 @@ function renderChart8(data) {
     };
   }).sort((a,b) => a.effectiveMargin - b.effectiveMargin);
 
+  const mob = isMobile();
+
+  // Mobile: stack vertically | Desktop: side by side
+  const xDom1  = mob ? [0, 1]    : [0, 0.44];
+  const xDom2  = mob ? [0, 1]    : [0.56, 1];
+  const yDom1  = mob ? [0.55, 1] : [0, 1];
+  const yDom2  = mob ? [0, 0.38] : [0, 1];
+
   Plotly.newPlot('chart8', [
     {
       x: discData.map(d => d.label), y: discData.map(d => d.margin),
       type: 'bar', xaxis: 'x', yaxis: 'y', showlegend: false,
       marker: { color: discData.map(d => d.margin > 25 ? C.positive : d.margin > 20 ? C.series[3] : C.negative) },
       text: discData.map(d => d.margin.toFixed(1) + '%'),
-      textposition: 'outside', textfont: { size: 11 },
+      textposition: 'outside', textfont: { size: mob ? 9 : 11 },
       hovertemplate: '<b>%{x}</b><br>GP Margin: %{y:.1f}%<extra></extra>',
     },
     {
@@ -560,7 +577,7 @@ function renderChart8(data) {
       type: 'bar', orientation: 'h', xaxis: 'x2', yaxis: 'y2',
       name: 'Shipping Cost %', marker: { color: C.negative, opacity: 0.8 },
       text: shipData.map(d => d.costPct.toFixed(1) + '%'),
-      textposition: 'inside', textfont: { size: 11, color: '#fff' },
+      textposition: 'inside', textfont: { size: mob ? 9 : 11, color: '#fff' },
       hovertemplate: '<b>%{y}</b><br>Shipping Cost: %{x:.1f}%<extra></extra>',
     },
     {
@@ -568,21 +585,24 @@ function renderChart8(data) {
       type: 'bar', orientation: 'h', xaxis: 'x2', yaxis: 'y2',
       name: 'Effective Margin %', marker: { color: C.positive, opacity: 0.8 },
       text: shipData.map(d => d.effectiveMargin.toFixed(1) + '%'),
-      textposition: 'inside', textfont: { size: 11, color: '#fff' },
+      textposition: 'inside', textfont: { size: mob ? 9 : 11, color: '#fff' },
       hovertemplate: '<b>%{y}</b><br>Effective Margin: %{x:.1f}%<extra></extra>',
     },
   ], baseLayout('Operational Efficiency — Discount Impact & Shipping Cost', {
-    height: 400, barmode: 'group',
-    legend: { orientation:'h', y:1.08, x:0.5, font:{size:11} },
-    xaxis:  axStyle({ domain:[0, 0.44], title:'Discount Band' }),
-    yaxis:  axStyle({ title:'GP Margin %', ticksuffix:'%', anchor:'x' }),
-    xaxis2: axStyle({ domain:[0.56, 1], title:'% of Revenue', ticksuffix:'%', anchor:'y2' }),
-    yaxis2: axStyle({ showgrid:false, anchor:'x2' }),
+    height: mob ? 680 : 400, barmode: 'group',
+    margin: { l: mob ? 90 : 55, r: 25, t: 70, b: 55 },
+    legend: { orientation:'h', y: mob ? 0.50 : 1.08, x: mob ? 0 : 0.5, font:{size:11} },
+    xaxis:  axStyle({ domain: xDom1, title: mob ? '' : 'Discount Band' }),
+    yaxis:  axStyle({ title:'GP Margin %', ticksuffix:'%', anchor:'x', domain: yDom1 }),
+    xaxis2: axStyle({ domain: xDom2, title:'% of Revenue', ticksuffix:'%', anchor:'y2' }),
+    yaxis2: axStyle({ showgrid:false, anchor:'x2', domain: yDom2 }),
     annotations: [
-      { text:'Discount Band: Margin Erosion', x:0.22, y:1.15, xref:'paper', yref:'paper',
-        showarrow:false, font:{size:13, color:C.primary} },
-      { text:'Shipping Partner Cost Efficiency', x:0.78, y:1.15, xref:'paper', yref:'paper',
-        showarrow:false, font:{size:13, color:C.primary} },
+      { text:'Discount Band: Margin Erosion',
+        x: mob ? 0.5 : 0.22, y: mob ? 1.04 : 1.12, xref:'paper', yref:'paper',
+        showarrow:false, font:{size: mob ? 12 : 13, color:C.primary} },
+      { text:'Shipping Partner Cost Efficiency',
+        x: mob ? 0.5 : 0.78, y: mob ? 0.44 : 1.12, xref:'paper', yref:'paper',
+        showarrow:false, font:{size: mob ? 12 : 13, color:C.primary} },
     ],
   }), PLOTLY_CFG);
 }
