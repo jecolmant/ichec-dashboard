@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+<meta name="googlebot" content="noindex, nofollow">
+<title>Strategic Performance Dashboard</title>
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: 'DM Sans', 'Segoe UI', sans-serif;
+    background: #F5F0EB;
+    color: #3D3D3D;
+    padding: 28px 36px;
+  }
+  .header {
+    margin-bottom: 22px;
+    padding-bottom: 14px;
+    border-bottom: 3px solid transparent;
+    border-image: linear-gradient(90deg, #7EB8DA, #B4A7D6, #E8927C, #F2C878) 1;
+  }
+  .header h1 {
+    font-size: 24px; font-weight: 700; color: #2C3E50;
+    letter-spacing: -0.3px;
+  }
+  .header p { font-size: 12px; color: #8896A6; margin-top: 4px; }
+  #kpis {
+    display: grid; grid-template-columns: repeat(6, 1fr);
+    gap: 14px; margin-bottom: 24px;
+  }
+  .kpi-card {
+    background: #fff; border-radius: 10px; padding: 16px 18px;
+    border-left: 4px solid #ccc;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  }
+  .kpi-label {
+    font-size: 11px; color: #8896A6; text-transform: uppercase;
+    letter-spacing: 0.6px; margin-bottom: 4px;
+  }
+  .kpi-value {
+    font-size: 22px; font-weight: 700; color: #2C3E50;
+  }
+  .grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 18px;
+  }
+  .chart-card {
+    background: #fff; border-radius: 10px; padding: 18px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  }
+  .chart-card.full-width { grid-column: 1 / -1; }
+  #loading {
+    text-align: center; padding: 80px; color: #8896A6; font-size: 16px;
+  }
+  @media (max-width: 900px) {
+    #kpis { grid-template-columns: repeat(3, 1fr); }
+    .grid { grid-template-columns: 1fr; }
+  }
+  @media print {
+    body { background: #fff; padding: 12px; }
+    .chart-card { box-shadow: none; border: 1px solid #ddd; page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Strategic Performance Dashboard</h1>
+  <p id="subtitle">Loading data...</p>
+</div>
+
+<div id="loading">Loading dashboard data...</div>
+
+<div id="kpis" style="display:none;"></div>
+
+<div class="grid" id="charts-grid" style="display:none;">
+  <div class="chart-card full-width"><div id="chart1"></div></div>
+  <div class="chart-card"><div id="chart2"></div></div>
+  <div class="chart-card"><div id="chart3"></div></div>
+  <div class="chart-card full-width"><div id="chart4"></div></div>
+  <div class="chart-card"><div id="chart5"></div></div>
+  <div class="chart-card"><div id="chart6"></div></div>
+  <div class="chart-card full-width"><div id="chart7"></div></div>
+  <div class="chart-card full-width"><div id="chart8"></div></div>
+</div>
+
+<div style="text-align:center; margin-top:20px; color:#b0b8c4; font-size:11px;">
+  Board of Directors — Confidential | Data source: Internal ERP
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// PALETTE — Pastel
+// ═══════════════════════════════════════════════════════════════
+const C = {
+  primary:  '#2C3E50',
+  text:     '#3D3D3D',
+  muted:    '#8896A6',
+  grid:     '#E8E2DA',
+  bg:       '#F5F0EB',
+  positive: '#82C9B5',
+  negative: '#E8927C',
+  series: [
+    '#7EB8DA', // cerulean
+    '#B4A7D6', // lavender
+    '#E8927C', // terra cotta
+    '#F2C878', // golden wheat
+    '#82C9B5', // jade
+    '#D4A0B9', // dusty rose
+    '#8CC5C2', // teal mist
+    '#E6A97E', // apricot
+    '#9BB5CE', // steel
+    '#B8CC8E', // pistachio
+  ],
+  kpiBorders: ['#7EB8DA','#82C9B5','#F2C878','#B4A7D6','#8CC5C2','#D4A0B9'],
+};
+
+const FONT = "'DM Sans', 'Segoe UI', sans-serif";
+const PLOTLY_CFG = { displayModeBar: true, displaylogo: false,
+  modeBarButtonsToRemove: ['lasso2d','select2d'] };
+
+function baseLayout(title, extra) {
+  return Object.assign({
+    font: { family: FONT, size: 12, color: C.text },
+    paper_bgcolor: 'rgba(0,0,0,0)',
+    plot_bgcolor: 'rgba(0,0,0,0)',
+    margin: { l: 55, r: 25, t: 56, b: 55 },
+    title: { text: title, font: { size: 15, color: C.primary, family: FONT },
+             x: 0.01, xanchor: 'left' },
+  }, extra || {});
+}
+
+function axStyle(ax) {
+  return Object.assign({ showgrid: true, gridcolor: C.grid,
+    linecolor: C.grid, tickfont: { size: 11, color: '#777' } }, ax);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DATA UTILITIES
+// ═══════════════════════════════════════════════════════════════
+function decodeData(raw) {
+  const L = raw.lookups;
+  return raw.rows.map(r => ({
+    date:         new Date(r[0]),
+    netRevenue:   r[1],
+    grossProfit:  r[2],
+    quantity:     r[3],
+    discount:     r[4],
+    category:     L.categories[r[5]],
+    subcategory:  L.subcategories[r[6]],
+    product:      L.products[r[7]],
+    country:      L.countries[r[8]],
+    region:       raw.countryRegionMap[L.countries[r[8]]],
+    shipper:      L.shippers[r[9]],
+    shipperFee:   L.shipperFees[L.shippers[r[9]]],
+    employeeKey:  r[10],
+    orderKey:     r[11],
+    customerKey:  r[12],
+  }));
+}
+
+function groupBy(arr, keyFn) {
+  const map = {};
+  arr.forEach(d => {
+    const k = keyFn(d);
+    (map[k] = map[k] || []).push(d);
+  });
+  return map;
+}
+
+function sum(arr, fn) { return arr.reduce((s, d) => s + fn(d), 0); }
+function countDistinct(arr, fn) { return new Set(arr.map(fn)).size; }
+function fmt$(v) {
+  if (v >= 1e6) return '$' + (v/1e6).toFixed(1) + 'M';
+  if (v >= 1e3) return '$' + (v/1e3).toFixed(0) + 'K';
+  return '$' + v.toFixed(0);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// KPI CARDS
+// ═══════════════════════════════════════════════════════════════
+function renderKPIs(data) {
+  const totalRev = sum(data, d => d.netRevenue);
+  const totalGP = sum(data, d => d.grossProfit);
+  const margin = totalGP / totalRev * 100;
+  const orderKeys = new Set(data.map(d => d.orderKey));
+  const totalOrders = orderKeys.size;
+  const orderRevs = {};
+  data.forEach(d => { orderRevs[d.orderKey] = (orderRevs[d.orderKey]||0) + d.netRevenue; });
+  const aov = Object.values(orderRevs).reduce((a,b) => a+b, 0) / totalOrders;
+  const customers = countDistinct(data, d => d.customerKey);
+
+  const kpis = [
+    { label: 'Net Revenue',     value: fmt$(totalRev) },
+    { label: 'Gross Profit',    value: fmt$(totalGP) },
+    { label: 'GP Margin',       value: margin.toFixed(1) + '%' },
+    { label: 'Total Orders',    value: totalOrders.toLocaleString() },
+    { label: 'Avg Order Value', value: fmt$(aov) },
+    { label: 'Active Customers',value: customers.toString() },
+  ];
+
+  const el = document.getElementById('kpis');
+  el.innerHTML = kpis.map((k, i) =>
+    `<div class="kpi-card" style="border-left-color:${C.kpiBorders[i]}">
+       <div class="kpi-label">${k.label}</div>
+       <div class="kpi-value">${k.value}</div>
+     </div>`
+  ).join('');
+  el.style.display = '';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CHART 1: Quarterly Revenue, Profit & Margin
+// ═══════════════════════════════════════════════════════════════
+function renderChart1(data) {
+  const groups = groupBy(data, d => d.date.getFullYear() + '-Q' + (Math.floor(d.date.getMonth()/3)+1));
+  const periods = Object.keys(groups).sort();
+  const rev = periods.map(p => sum(groups[p], d => d.netRevenue));
+  const gp  = periods.map(p => sum(groups[p], d => d.grossProfit));
+  const margin = periods.map((p,i) => gp[i]/rev[i]*100);
+
+  Plotly.newPlot('chart1', [
+    { x: periods, y: rev, type:'bar', name:'Net Revenue', marker:{color:C.series[0], opacity:0.8},
+      hovertemplate:'%{x}<br>Revenue: $%{y:,.0f}<extra></extra>' },
+    { x: periods, y: gp, type:'bar', name:'Gross Profit', marker:{color:C.series[4], opacity:0.8},
+      hovertemplate:'%{x}<br>Profit: $%{y:,.0f}<extra></extra>' },
+    { x: periods, y: margin, type:'scatter', mode:'lines+markers', name:'GP Margin %',
+      yaxis:'y2', line:{color:C.series[3], width:2.5}, marker:{size:5},
+      hovertemplate:'%{x}<br>Margin: %{y:.1f}%<extra></extra>' },
+  ], baseLayout('Quarterly Revenue, Gross Profit & Margin Trend', {
+    barmode: 'group', height: 420,
+    legend: { orientation:'h', y:1.08, x:0, font:{size:11} },
+    xaxis: axStyle({ tickangle:-45, tickfont:{size:9} }),
+    yaxis: axStyle({ tickformat:'$,.0s' }),
+    yaxis2: { overlaying:'y', side:'right', ticksuffix:'%', showgrid:false,
+              range:[0,50], tickfont:{size:11, color:'#777'} },
+  }), PLOTLY_CFG);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CHART 2: YoY Revenue Growth
+// ═══════════════════════════════════════════════════════════════
+function renderChart2(data) {
+  const groups = groupBy(data, d => d.date.getFullYear());
+  const years = Object.keys(groups).sort();
+  const revs = years.map(y => sum(groups[y], d => d.netRevenue));
+
+  const barY = [], bases = [], colors = [], texts = [];
+  revs.forEach((r, i) => {
+    if (i === 0) {
+      bases.push(0); barY.push(r); colors.push(C.series[0]);
+      texts.push(fmt$(r));
+    } else {
+      const delta = r - revs[i-1];
+      const pct = delta / revs[i-1] * 100;
+      if (delta >= 0) { bases.push(revs[i-1]); barY.push(delta); colors.push(C.positive); }
+      else            { bases.push(r); barY.push(-delta); colors.push(C.negative); }
+      texts.push((delta>=0?'+':'') + pct.toFixed(0) + '%');
+    }
+  });
+
+  Plotly.newPlot('chart2', [{
+    x: years, y: barY, base: bases, type:'bar',
+    marker: { color: colors }, width: 0.55,
+    text: texts, textposition:'outside', textfont:{size:12, color:'#555'},
+    customdata: revs,
+    hovertemplate: 'Year %{x}<br>Revenue: $%{customdata:,.0f}<extra></extra>',
+  }], baseLayout('Year-over-Year Revenue Trajectory', {
+    showlegend: false, height: 400,
+    xaxis: axStyle({ showgrid:false }),
+    yaxis: axStyle({ tickformat:'$,.0s' }),
+  }), PLOTLY_CFG);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CHART 3: Sub-Category Profitability Bubble
+// ═══════════════════════════════════════════════════════════════
+function renderChart3(data) {
+  const groups = groupBy(data, d => d.category + '|||' + d.subcategory);
+  const cats = [...new Set(data.map(d => d.category))].sort();
+  const traces = [];
+
+  cats.forEach((cat, ci) => {
+    const entries = Object.entries(groups)
+      .filter(([k]) => k.startsWith(cat + '|||'))
+      .map(([k, items]) => ({
+        sub: k.split('|||')[1],
+        rev: sum(items, d => d.netRevenue),
+        gp: sum(items, d => d.grossProfit),
+        qty: sum(items, d => d.quantity),
+      }));
+    const maxQty = Math.max(...entries.map(e => e.qty));
+
+    traces.push({
+      x: entries.map(e => e.rev),
+      y: entries.map(e => e.gp / e.rev * 100),
+      text: entries.map(e => e.sub),
+      mode: 'markers+text', textposition: 'top center', textfont: { size: 10 },
+      marker: {
+        size: entries.map(e => e.qty / maxQty * 50 + 14),
+        color: C.series[ci], opacity: 0.7,
+        line: { width: 1.5, color: '#fff' },
+      },
+      name: cat,
+      hovertemplate: '<b>%{text}</b><br>Revenue: $%{x:,.0f}<br>Margin: %{y:.1f}%<extra>' + cat + '</extra>',
+    });
+  });
+
+  Plotly.newPlot('chart3', traces, baseLayout('Sub-Category Profitability — Revenue vs. Margin', {
+    height: 460,
+    legend: { orientation:'h', y:1.08, x:0, font:{size:11} },
+    xaxis: axStyle({ title:'Net Revenue ($)', tickformat:'$,.0s' }),
+    yaxis: axStyle({ title:'GP Margin (%)', ticksuffix:'%' }),
+  }), PLOTLY_CFG);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CHART 4: Geographic Revenue Treemap
+// ═══════════════════════════════════════════════════════════════
+function renderChart4(data) {
+  const regGroups = groupBy(data, d => d.region);
+  const regions = Object.keys(regGroups).sort();
+  const cGroups = groupBy(data, d => d.region + '|||' + d.country);
+
+  const labels = [], parents = [], values = [], margins = [], custs = [];
+
+  regions.forEach(reg => {
+    const items = regGroups[reg];
+    const rev = sum(items, d => d.netRevenue);
+    const gp = sum(items, d => d.grossProfit);
+    labels.push(reg); parents.push(''); values.push(rev);
+    margins.push(gp/rev*100); custs.push(countDistinct(items, d => d.customerKey));
+  });
+
+  Object.entries(cGroups).forEach(([key, items]) => {
+    const [reg, country] = key.split('|||');
+    const rev = sum(items, d => d.netRevenue);
+    const gp = sum(items, d => d.grossProfit);
+    labels.push(country); parents.push(reg); values.push(rev);
+    margins.push(gp/rev*100); custs.push(countDistinct(items, d => d.customerKey));
+  });
+
+  Plotly.newPlot('chart4', [{
+    type: 'treemap', branchvalues: 'total',
+    labels, parents, values,
+    customdata: margins.map((m,i) => [m, custs[i]]),
+    texttemplate: '<b>%{label}</b><br>$%{value:,.0f}<br>Margin: %{customdata[0]:.1f}%',
+    hovertemplate: '<b>%{label}</b><br>Revenue: $%{value:,.0f}<br>Margin: %{customdata[0]:.1f}%<br>Customers: %{customdata[1]}<extra></extra>',
+    marker: {
+      colors: margins,
+      colorscale: [[0,'#E8927C'],[0.5,'#F2C878'],[1,'#82C9B5']],
+      colorbar: { title:'GP Margin %', ticksuffix:'%', len:0.6 },
+      line: { width: 2, color: '#fff' },
+    },
+    textfont: { size: 12, family: FONT },
+    pathbar: { visible: true },
+  }], baseLayout('Revenue by Geography — Size: Revenue, Color: Profit Margin', {
+    height: 480, margin: { l:10, r:10, t:60, b:10 },
+  }), PLOTLY_CFG);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CHART 5: Top 10 Products — Dumbbell
+// ═══════════════════════════════════════════════════════════════
+function renderChart5(data) {
+  const groups = groupBy(data, d => d.product);
+  const totalRev = sum(data, d => d.netRevenue);
+  const totalGP = sum(data, d => d.grossProfit);
+
+  let prods = Object.entries(groups).map(([prod, items]) => ({
+    prod,
+    rev: sum(items, d => d.netRevenue),
+    gp: sum(items, d => d.grossProfit),
+  }));
+  prods.sort((a,b) => b.rev - a.rev);
+  prods = prods.slice(0, 10).reverse();
+
+  const traces = [];
+  prods.forEach(p => {
+    traces.push({
+      x: [p.rev/totalRev*100, p.gp/totalGP*100], y: [p.prod, p.prod],
+      mode:'lines', line:{color:C.grid, width:2}, showlegend:false, hoverinfo:'skip',
+    });
+  });
+  traces.push({
+    x: prods.map(p => p.rev/totalRev*100), y: prods.map(p => p.prod),
+    mode:'markers', name:'Revenue Share %',
+    marker: { size:12, color:C.series[0], symbol:'circle', line:{width:1,color:'#fff'} },
+    hovertemplate: '<b>%{y}</b><br>Rev Share: %{x:.1f}%<extra></extra>',
+  });
+  traces.push({
+    x: prods.map(p => p.gp/totalGP*100), y: prods.map(p => p.prod),
+    mode:'markers', name:'Profit Share %',
+    marker: { size:12, color:C.series[4], symbol:'diamond', line:{width:1,color:'#fff'} },
+    hovertemplate: '<b>%{y}</b><br>Profit Share: %{x:.1f}%<extra></extra>',
+  });
+
+  Plotly.newPlot('chart5', traces, baseLayout('Top 10 Products — Revenue vs. Profit Contribution', {
+    height: 420,
+    legend: { orientation:'h', y:1.08, x:0, font:{size:11} },
+    xaxis: axStyle({ title:'Share of Total (%)', ticksuffix:'%' }),
+    yaxis: axStyle({ showgrid:false }),
+  }), PLOTLY_CFG);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CHART 6: Quota Attainment
+// ═══════════════════════════════════════════════════════════════
+function renderChart6(data, quotaData) {
+  const today = new Date();
+  const year = today.getFullYear();
+  const yearData = data.filter(d => d.date.getFullYear() === year);
+
+  if (yearData.length === 0) {
+    document.getElementById('chart6').innerHTML = '<p style="color:#8896A6;text-align:center;padding:40px;">No sales data available for ' + year + '</p>';
+    return;
+  }
+
+  const empRev = {};
+  yearData.forEach(d => { empRev[d.employeeKey] = (empRev[d.employeeKey]||0) + d.netRevenue; });
+
+  const perf = quotaData
+    .filter(q => empRev[q.id] !== undefined)
+    .map(q => ({
+      name: q.name,
+      actual: empRev[q.id],
+      quota: q.q1 + q.q2 + q.q3 + q.q4,
+    }));
+  perf.forEach(p => { p.attainment = p.actual / p.quota * 100; });
+  perf.sort((a,b) => a.attainment - b.attainment);
+
+  Plotly.newPlot('chart6', [{
+    y: perf.map(p => p.name), x: perf.map(p => p.attainment),
+    type:'bar', orientation:'h',
+    marker: { color: perf.map(p => p.attainment >= 100 ? C.positive : C.negative) },
+    text: perf.map(p => p.attainment.toFixed(0) + '%'),
+    textposition: 'outside', textfont: { size: 11 },
+    customdata: perf.map(p => [p.actual, p.quota]),
+    hovertemplate: '<b>%{y}</b><br>Attainment: %{x:.1f}%<br>Actual: $%{customdata[0]:,.0f}<br>Quota: $%{customdata[1]:,.0f}<extra></extra>',
+  }], baseLayout('Sales Rep Quota Attainment — FY' + year + ' YTD', {
+    showlegend: false, height: 440,
+    xaxis: axStyle({ title:'Quota Attainment (%)', ticksuffix:'%' }),
+    yaxis: axStyle({ showgrid:false }),
+    shapes: [{ type:'line', x0:100, x1:100, y0:-0.5, y1:perf.length-0.5,
+               line:{color:C.muted, dash:'dash', width:1.5} }],
+    annotations: [{ x:100, y:perf.length-0.3, text:'Target', showarrow:false,
+                    font:{size:10, color:C.muted}, xanchor:'left', xshift:4 }],
+  }), PLOTLY_CFG);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CHART 7: Monthly Revenue Heatmap
+// ═══════════════════════════════════════════════════════════════
+function renderChart7(data) {
+  const groups = groupBy(data, d => d.date.getFullYear() + '-' + (d.date.getMonth()+1));
+  const years = [...new Set(data.map(d => d.date.getFullYear()))].sort();
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  const z = [], text = [];
+  years.forEach(y => {
+    const row = [], trow = [];
+    for (let m = 1; m <= 12; m++) {
+      const items = groups[y + '-' + m] || [];
+      const rev = sum(items, d => d.netRevenue);
+      row.push(rev);
+      trow.push(rev > 0 ? '$' + (rev/1e3).toFixed(0) + 'K' : '');
+    }
+    z.push(row); text.push(trow);
+  });
+
+  Plotly.newPlot('chart7', [{
+    type: 'heatmap',
+    z, x: months, y: years.map(String), text, texttemplate: '%{text}',
+    colorscale: [[0,'#F5F0EB'],[0.25,'#C8DDE8'],[0.5,'#7EB8DA'],[0.75,'#5A99BE'],[1,'#2C3E50']],
+    hovertemplate: '%{y} %{x}<br>Revenue: $%{z:,.0f}<extra></extra>',
+    colorbar: { title:'Revenue', tickformat:'$,.0s', len:0.6 },
+    textfont: { size: 9 },
+  }], baseLayout('Monthly Revenue Heatmap — Seasonal & Growth Patterns', {
+    height: 380,
+    xaxis: { side:'top', tickfont:{size:11, color:'#777'} },
+    yaxis: { autorange:'reversed', tickfont:{size:11, color:'#777'} },
+  }), PLOTLY_CFG);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CHART 8: Operational Efficiency (Subplots)
+// ═══════════════════════════════════════════════════════════════
+function renderChart8(data) {
+  const bands = [
+    { label:'No Discount', min:-0.001, max:0.001 },
+    { label:'0\u20135%',   min:0.001,  max:0.05 },
+    { label:'5\u201310%',  min:0.05,   max:0.10 },
+    { label:'10\u201315%', min:0.10,   max:0.15 },
+    { label:'15\u201320%', min:0.15,   max:0.20 },
+    { label:'20\u201330%', min:0.20,   max:0.31 },
+  ];
+  const discData = bands.map(b => {
+    const items = data.filter(d => d.discount > b.min && d.discount <= b.max);
+    const rev = sum(items, d => d.netRevenue);
+    const gp = sum(items, d => d.grossProfit);
+    return { label: b.label, margin: rev > 0 ? gp/rev*100 : 0 };
+  });
+
+  const shipGroups = groupBy(data, d => d.shipper);
+  const shipData = Object.entries(shipGroups).map(([name, items]) => {
+    const rev = sum(items, d => d.netRevenue);
+    const gp = sum(items, d => d.grossProfit);
+    const shipCost = sum(items, d => d.netRevenue * d.shipperFee);
+    return {
+      name,
+      costPct: shipCost / rev * 100,
+      effectiveMargin: (gp - shipCost) / rev * 100,
+    };
+  }).sort((a,b) => a.effectiveMargin - b.effectiveMargin);
+
+  Plotly.newPlot('chart8', [
+    {
+      x: discData.map(d => d.label), y: discData.map(d => d.margin),
+      type: 'bar', xaxis: 'x', yaxis: 'y', showlegend: false,
+      marker: { color: discData.map(d => d.margin > 25 ? C.positive : d.margin > 20 ? C.series[3] : C.negative) },
+      text: discData.map(d => d.margin.toFixed(1) + '%'),
+      textposition: 'outside', textfont: { size: 11 },
+      hovertemplate: '<b>%{x}</b><br>GP Margin: %{y:.1f}%<extra></extra>',
+    },
+    {
+      y: shipData.map(d => d.name), x: shipData.map(d => d.costPct),
+      type: 'bar', orientation: 'h', xaxis: 'x2', yaxis: 'y2',
+      name: 'Shipping Cost %', marker: { color: C.negative, opacity: 0.8 },
+      text: shipData.map(d => d.costPct.toFixed(1) + '%'),
+      textposition: 'inside', textfont: { size: 11, color: '#fff' },
+      hovertemplate: '<b>%{y}</b><br>Shipping Cost: %{x:.1f}%<extra></extra>',
+    },
+    {
+      y: shipData.map(d => d.name), x: shipData.map(d => d.effectiveMargin),
+      type: 'bar', orientation: 'h', xaxis: 'x2', yaxis: 'y2',
+      name: 'Effective Margin %', marker: { color: C.positive, opacity: 0.8 },
+      text: shipData.map(d => d.effectiveMargin.toFixed(1) + '%'),
+      textposition: 'inside', textfont: { size: 11, color: '#fff' },
+      hovertemplate: '<b>%{y}</b><br>Effective Margin: %{x:.1f}%<extra></extra>',
+    },
+  ], baseLayout('Operational Efficiency — Discount Impact & Shipping Cost', {
+    height: 400, barmode: 'group',
+    legend: { orientation:'h', y:1.08, x:0.5, font:{size:11} },
+    xaxis:  axStyle({ domain:[0, 0.44], title:'Discount Band' }),
+    yaxis:  axStyle({ title:'GP Margin %', ticksuffix:'%', anchor:'x' }),
+    xaxis2: axStyle({ domain:[0.56, 1], title:'% of Revenue', ticksuffix:'%', anchor:'y2' }),
+    yaxis2: axStyle({ showgrid:false, anchor:'x2' }),
+    annotations: [
+      { text:'Discount Band: Margin Erosion', x:0.22, y:1.15, xref:'paper', yref:'paper',
+        showarrow:false, font:{size:13, color:C.primary} },
+      { text:'Shipping Partner Cost Efficiency', x:0.78, y:1.15, xref:'paper', yref:'paper',
+        showarrow:false, font:{size:13, color:C.primary} },
+    ],
+  }), PLOTLY_CFG);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MAIN
+// ═══════════════════════════════════════════════════════════════
+async function main() {
+  try {
+    const raw = await fetch('data.json').then(r => r.json());
+    const allData = decodeData(raw);
+
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+    const data = allData.filter(d => d.date <= today);
+
+    if (data.length === 0) {
+      document.getElementById('loading').textContent = 'No data available for the current date range.';
+      return;
+    }
+
+    const minDate = data.reduce((m, d) => d.date < m ? d.date : m, data[0].date);
+    const maxDate = data.reduce((m, d) => d.date > m ? d.date : m, data[0].date);
+    const fmtDate = d => d.toLocaleDateString('en-US', { month:'short', year:'numeric' });
+    const customers = countDistinct(data, d => d.customerKey);
+    document.getElementById('subtitle').textContent =
+      'Data period: ' + fmtDate(minDate) + ' \u2014 ' + fmtDate(maxDate) +
+      '  |  ' + data.length.toLocaleString() + ' order lines  |  ' + customers + ' customers';
+
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('charts-grid').style.display = '';
+
+    renderKPIs(data);
+    renderChart1(data);
+    renderChart2(data);
+    renderChart3(data);
+    renderChart4(data);
+    renderChart5(data);
+    renderChart6(data, raw.quota);
+    renderChart7(data);
+    renderChart8(data);
+
+  } catch (err) {
+    document.getElementById('loading').textContent = 'Error loading data: ' + err.message;
+    console.error(err);
+  }
+}
+
+main();
+</script>
+</body>
+</html>
