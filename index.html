@@ -54,9 +54,26 @@
   #loading {
     text-align: center; padding: 80px; color: #8896A6; font-size: 16px;
   }
-  @media (max-width: 900px) {
-    #kpis { grid-template-columns: repeat(3, 1fr); }
-    .grid { grid-template-columns: 1fr; }
+  /* Tablet */
+  @media (max-width: 1024px) {
+    body { padding: 20px 18px; }
+    #kpis { grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .grid { gap: 14px; }
+    .header h1 { font-size: 21px; }
+  }
+  /* Mobile */
+  @media (max-width: 640px) {
+    body { padding: 14px 10px; }
+    .header { margin-bottom: 14px; padding-bottom: 10px; }
+    .header h1 { font-size: 17px; }
+    .header p { font-size: 10px; }
+    #kpis { grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 14px; }
+    .kpi-card { padding: 10px 12px; border-radius: 8px; }
+    .kpi-label { font-size: 9px; }
+    .kpi-value { font-size: 18px; }
+    .grid { grid-template-columns: 1fr; gap: 10px; }
+    .chart-card { padding: 10px; border-radius: 8px; overflow-x: auto; }
+    .chart-card.full-width { grid-column: 1; }
   }
   @media print {
     body { background: #fff; padding: 12px; }
@@ -119,7 +136,7 @@ const C = {
 
 const FONT = "'DM Sans', 'Segoe UI', sans-serif";
 const PLOTLY_CFG = { displayModeBar: true, displaylogo: false,
-  modeBarButtonsToRemove: ['lasso2d','select2d'] };
+  modeBarButtonsToRemove: ['lasso2d','select2d'], responsive: true };
 
 function baseLayout(title, extra) {
   return Object.assign({
