@@ -51,9 +51,16 @@
     box-shadow: 0 1px 4px rgba(0,0,0,0.04);
   }
   .chart-card.full-width { grid-column: 1 / -1; }
-  /* Prevent Plotly from hijacking touch scroll */
-  .js-plotly-plot .plotly .drag { touch-action: pan-y !important; }
-  .js-plotly-plot { touch-action: pan-y !important; }
+  /* Prevent Plotly from hijacking touch scroll on mobile */
+  .js-plotly-plot,
+  .js-plotly-plot .plotly,
+  .js-plotly-plot .plotly .drag,
+  .js-plotly-plot .plotly .nsewdrag,
+  .js-plotly-plot .plotly .main-svg,
+  .js-plotly-plot .plotly .draglayer,
+  .js-plotly-plot .plotly .xy {
+    touch-action: pan-y !important;
+  }
   #loading {
     text-align: center; padding: 80px; color: #8896A6; font-size: 16px;
   }
@@ -147,7 +154,7 @@ function baseLayout(title, extra) {
     font: { family: FONT, size: 12, color: C.text },
     paper_bgcolor: 'rgba(0,0,0,0)',
     plot_bgcolor: 'rgba(0,0,0,0)',
-    margin: { l: 55, r: 25, t: 56, b: 55 },
+    margin: { l: 55, r: 25, t: 56, b: 55 }, dragmode: false,
     title: { text: title, font: { size: 15, color: C.primary, family: FONT },
              x: 0.01, xanchor: 'left' },
   }, extra || {});
@@ -372,14 +379,16 @@ function renderChart4(data) {
     marker: {
       colors: margins,
       colorscale: [[0,'#E8927C'],[0.5,'#F2C878'],[1,'#82C9B5']],
-      colorbar: { title:'GP Margin %', ticksuffix:'%', len:0.6 },
+      colorbar: { title:'GP Margin %', ticksuffix:'%', orientation:'h',
+        len:0.5, thickness:14, y:1.02, yanchor:'bottom', x:0.5, xanchor:'center',
+        titleside:'top', titlefont:{size:11} },
       line: { width: 2, color: '#fff' },
     },
     textfont: { size: 12, family: FONT },
     pathbar: { visible: true, side: 'top', edgeshape: '>', textfont: { size: 13, family: FONT } },
     tiling: { pad: 3 },
   }], baseLayout('Revenue by Geography — Size: Revenue, Color: Profit Margin', {
-    height: 500, margin: { l:10, r:10, t:80, b:10 },
+    height: 520, margin: { l:10, r:10, t:100, b:10 },
   }), PLOTLY_CFG);
 }
 
