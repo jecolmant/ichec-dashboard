@@ -106,7 +106,14 @@
   <div class="chart-card full-width"><div id="chart1"></div></div>
   <div class="chart-card"><div id="chart2"></div></div>
   <div class="chart-card"><div id="chart3"></div></div>
-  <div class="chart-card full-width"><div id="chart4"></div></div>
+  <div class="chart-card full-width">
+    <div id="chart4-legend" style="display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:6px; font-size:11px; color:#777;">
+      <span>Low Margin</span>
+      <div style="width:140px; height:12px; border-radius:6px; background:linear-gradient(90deg, #E8927C, #F2C878, #82C9B5);"></div>
+      <span>High Margin</span>
+    </div>
+    <div id="chart4"></div>
+  </div>
   <div class="chart-card"><div id="chart5"></div></div>
   <div class="chart-card"><div id="chart6"></div></div>
   <div class="chart-card full-width"><div id="chart7"></div></div>
@@ -385,10 +392,7 @@ function renderChart4(data) {
     marker: {
       colors: margins,
       colorscale: [[0,'#E8927C'],[0.5,'#F2C878'],[1,'#82C9B5']],
-      colorbar: { title:'GP Margin %', ticksuffix:'%', orientation:'h',
-        len: mob ? 0.7 : 0.5, thickness: mob ? 10 : 14,
-        y:1.02, yanchor:'bottom', x:0.5, xanchor:'center',
-        titleside:'top', titlefont:{size: mob ? 9 : 11} },
+      showscale: false,
       line: { width: mob ? 1 : 2, color: '#fff' },
     },
     textfont: { size: mob ? 10 : 12, family: FONT },
@@ -396,8 +400,8 @@ function renderChart4(data) {
       textfont: { size: mob ? 10 : 13, family: FONT } },
     tiling: { pad: mob ? 2 : 3 },
   }], baseLayout('Revenue by Geography', {
-    height: mob ? 420 : 520,
-    margin: { l:6, r:6, t: mob ? 80 : 100, b:6 },
+    height: mob ? 400 : 500,
+    margin: { l:6, r:6, t:50, b:6 },
   }), PLOTLY_CFG);
 }
 
@@ -560,8 +564,8 @@ function renderChart8(data) {
   // Mobile: stack vertically | Desktop: side by side
   const xDom1  = mob ? [0, 1]    : [0, 0.44];
   const xDom2  = mob ? [0, 1]    : [0.56, 1];
-  const yDom1  = mob ? [0.55, 1] : [0, 1];
-  const yDom2  = mob ? [0, 0.38] : [0, 1];
+  const yDom1  = mob ? [0.58, 1] : [0, 1];
+  const yDom2  = mob ? [0, 0.32] : [0, 1];
 
   Plotly.newPlot('chart8', [
     {
@@ -588,21 +592,21 @@ function renderChart8(data) {
       textposition: 'inside', textfont: { size: mob ? 9 : 11, color: '#fff' },
       hovertemplate: '<b>%{y}</b><br>Effective Margin: %{x:.1f}%<extra></extra>',
     },
-  ], baseLayout('Operational Efficiency — Discount Impact & Shipping Cost', {
-    height: mob ? 680 : 400, barmode: 'group',
+  ], baseLayout(mob ? 'Operational Efficiency' : 'Operational Efficiency — Discount Impact & Shipping Cost', {
+    height: mob ? 750 : 400, barmode: 'group',
     margin: { l: mob ? 90 : 55, r: 25, t: 70, b: 55 },
-    legend: { orientation:'h', y: mob ? 0.50 : 1.08, x: mob ? 0 : 0.5, font:{size:11} },
+    legend: { orientation:'h', y: mob ? 0.48 : 1.08, x: mob ? 0 : 0.5, font:{size:11} },
     xaxis:  axStyle({ domain: xDom1, title: mob ? '' : 'Discount Band' }),
-    yaxis:  axStyle({ title:'GP Margin %', ticksuffix:'%', anchor:'x', domain: yDom1 }),
+    yaxis:  axStyle({ title: mob ? 'GP %' : 'GP Margin %', ticksuffix:'%', anchor:'x', domain: yDom1 }),
     xaxis2: axStyle({ domain: xDom2, title:'% of Revenue', ticksuffix:'%', anchor:'y2' }),
     yaxis2: axStyle({ showgrid:false, anchor:'x2', domain: yDom2 }),
     annotations: [
-      { text:'Discount Band: Margin Erosion',
+      { text: mob ? 'Discount: Margin Erosion' : 'Discount Band: Margin Erosion',
         x: mob ? 0.5 : 0.22, y: mob ? 1.04 : 1.12, xref:'paper', yref:'paper',
-        showarrow:false, font:{size: mob ? 12 : 13, color:C.primary} },
-      { text:'Shipping Partner Cost Efficiency',
-        x: mob ? 0.5 : 0.78, y: mob ? 0.44 : 1.12, xref:'paper', yref:'paper',
-        showarrow:false, font:{size: mob ? 12 : 13, color:C.primary} },
+        showarrow:false, font:{size: mob ? 11 : 13, color:C.primary} },
+      { text: mob ? 'Shipping Cost Efficiency' : 'Shipping Partner Cost Efficiency',
+        x: mob ? 0.5 : 0.78, y: mob ? 0.40 : 1.12, xref:'paper', yref:'paper',
+        showarrow:false, font:{size: mob ? 11 : 13, color:C.primary} },
     ],
   }), PLOTLY_CFG);
 }
