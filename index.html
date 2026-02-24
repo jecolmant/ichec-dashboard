@@ -84,6 +84,7 @@
     .grid { grid-template-columns: 1fr; gap: 10px; }
     .chart-card { padding: 10px; border-radius: 8px; overflow-x: auto; }
     .chart-card.full-width { grid-column: 1; }
+    #chart4-legend { display: none !important; }
   }
   @media print {
     body { background: #fff; padding: 12px; }
@@ -265,7 +266,7 @@ function renderChart1(data) {
     { x: periods, y: margin, type:'scatter', mode:'lines+markers', name:'GP Margin %',
       yaxis:'y2', line:{color:C.series[3], width:2.5}, marker:{size:5},
       hovertemplate:'%{x}<br>Margin: %{y:.1f}%<extra></extra>' },
-  ], baseLayout('Quarterly Revenue, Gross Profit & Margin Trend', {
+  ], baseLayout(isMobile() ? 'Revenue, Profit & Margin' : 'Quarterly Revenue, Gross Profit & Margin Trend', {
     barmode: 'group', height: 420,
     legend: { orientation:'h', y:1.08, x:0, font:{size:11} },
     xaxis: axStyle({ tickangle:-45, tickfont:{size:9} }),
@@ -303,7 +304,7 @@ function renderChart2(data) {
     text: texts, textposition:'outside', textfont:{size:12, color:'#555'},
     customdata: revs,
     hovertemplate: 'Year %{x}<br>Revenue: $%{customdata:,.0f}<extra></extra>',
-  }], baseLayout('Year-over-Year Revenue Trajectory', {
+  }], baseLayout(isMobile() ? 'YoY Revenue' : 'Year-over-Year Revenue Trajectory', {
     showlegend: false, height: 400,
     xaxis: axStyle({ showgrid:false }),
     yaxis: axStyle({ tickformat:'$,.0s' }),
@@ -346,7 +347,7 @@ function renderChart3(data) {
     });
   });
 
-  Plotly.newPlot('chart3', traces, baseLayout('Sub-Category Profitability — Revenue vs. Margin', {
+  Plotly.newPlot('chart3', traces, baseLayout(isMobile() ? 'Sub-Category Profitability' : 'Sub-Category Profitability — Revenue vs. Margin', {
     height: 460,
     legend: { orientation:'h', y:1.08, x:0, font:{size:11} },
     xaxis: axStyle({ title:'Net Revenue ($)', tickformat:'$,.0s' }),
@@ -441,7 +442,7 @@ function renderChart5(data) {
     hovertemplate: '<b>%{y}</b><br>Profit Share: %{x:.1f}%<extra></extra>',
   });
 
-  Plotly.newPlot('chart5', traces, baseLayout('Top 10 Products — Revenue vs. Profit Contribution', {
+  Plotly.newPlot('chart5', traces, baseLayout(isMobile() ? 'Top 10 Products' : 'Top 10 Products — Revenue vs. Profit Contribution', {
     height: 420,
     legend: { orientation:'h', y:1.08, x:0, font:{size:11} },
     xaxis: axStyle({ title:'Share of Total (%)', ticksuffix:'%' }),
@@ -483,7 +484,7 @@ function renderChart6(data, quotaData) {
     textposition: 'outside', textfont: { size: 11 },
     customdata: perf.map(p => [p.actual, p.quota]),
     hovertemplate: '<b>%{y}</b><br>Attainment: %{x:.1f}%<br>Actual: $%{customdata[0]:,.0f}<br>Quota: $%{customdata[1]:,.0f}<extra></extra>',
-  }], baseLayout('Sales Rep Quota Attainment — FY' + year + ' YTD', {
+  }], baseLayout(isMobile() ? 'Quota Attainment FY' + year : 'Sales Rep Quota Attainment — FY' + year + ' YTD', {
     showlegend: false, height: 440,
     xaxis: axStyle({ title:'Quota Attainment (%)', ticksuffix:'%' }),
     yaxis: axStyle({ showgrid:false }),
@@ -521,7 +522,7 @@ function renderChart7(data) {
     hovertemplate: '%{y} %{x}<br>Revenue: $%{z:,.0f}<extra></extra>',
     colorbar: { title:'Revenue', tickformat:'$,.0s', len:0.6 },
     textfont: { size: 9 },
-  }], baseLayout('Monthly Revenue Heatmap — Seasonal & Growth Patterns', {
+  }], baseLayout(isMobile() ? 'Monthly Revenue Heatmap' : 'Monthly Revenue Heatmap — Seasonal & Growth Patterns', {
     height: 380,
     xaxis: { side:'top', tickfont:{size:11, color:'#777'} },
     yaxis: { autorange:'reversed', tickfont:{size:11, color:'#777'} },
