@@ -51,6 +51,9 @@
     box-shadow: 0 1px 4px rgba(0,0,0,0.04);
   }
   .chart-card.full-width { grid-column: 1 / -1; }
+  /* Prevent Plotly from hijacking touch scroll */
+  .js-plotly-plot .plotly .drag { touch-action: pan-y !important; }
+  .js-plotly-plot { touch-action: pan-y !important; }
   #loading {
     text-align: center; padding: 80px; color: #8896A6; font-size: 16px;
   }
@@ -136,7 +139,8 @@ const C = {
 
 const FONT = "'DM Sans', 'Segoe UI', sans-serif";
 const PLOTLY_CFG = { displayModeBar: true, displaylogo: false,
-  modeBarButtonsToRemove: ['lasso2d','select2d'], responsive: true };
+  modeBarButtonsToRemove: ['lasso2d','select2d'], responsive: true,
+  scrollZoom: false };
 
 function baseLayout(title, extra) {
   return Object.assign({
@@ -372,9 +376,10 @@ function renderChart4(data) {
       line: { width: 2, color: '#fff' },
     },
     textfont: { size: 12, family: FONT },
-    pathbar: { visible: true },
+    pathbar: { visible: true, side: 'top', edgeshape: '>', textfont: { size: 13, family: FONT } },
+    tiling: { pad: 3 },
   }], baseLayout('Revenue by Geography — Size: Revenue, Color: Profit Margin', {
-    height: 480, margin: { l:10, r:10, t:60, b:10 },
+    height: 500, margin: { l:10, r:10, t:80, b:10 },
   }), PLOTLY_CFG);
 }
 
